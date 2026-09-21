@@ -14,6 +14,7 @@ import webbrowser
 from dayglass.ask import complete
 from dayglass.automations import PROMPTS, run_automation
 from dayglass.capture import grab
+from dayglass.daemon import run_daemon
 from dayglass.meetings import record_chunk, summarize_meeting
 from dayglass.server import serve
 from dayglass.store import (
@@ -189,6 +190,10 @@ def main(argv: list[str] | None = None) -> int:
     srv = sub.add_parser("serve", help="Start Dayglass API server")
     srv.add_argument("--port", type=int, default=3333)
 
+    dmn = sub.add_parser("daemon", help="Run autonomous capture daemon (screen + audio + meeting detection)")
+    dmn.add_argument("--screen-interval", type=int, default=45, help="Screen capture interval in seconds")
+    dmn.add_argument("--audio-chunk", type=int, default=15, help="Audio chunk duration in seconds")
+
     args = parser.parse_args(argv)
 
     if args.cmd == "capture":
@@ -225,6 +230,9 @@ def main(argv: list[str] | None = None) -> int:
         s = serve(port=args.port)
         print(f"Dayglass server running at http://127.0.0.1:{args.port}")
         s.serve_forever()
+        return 0
+    if args.cmd == "daemon":
+        run_daemon(screen_interval=args.screen_interval, audio_chunk=args.audio_chunk)
         return 0
 
     parser.error("unknown command")
