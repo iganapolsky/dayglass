@@ -8,14 +8,14 @@ import urllib.error
 import urllib.request
 
 DEFAULT_URLS = (
-    "http://127.0.0.1:1235/v1",
     "http://127.0.0.1:1234/v1",
+    "http://127.0.0.1:1235/v1",
 )
 DEFAULT_MODEL = "qwen3.8-27b-mlx@4bit"
 FALLBACK_MODEL = "qwen3-4b-instruct-2507-mlx"
 
 
-def _chat(base: str, model: str, prompt: str, timeout: int = 120) -> str:
+def _chat(base: str, model: str, prompt: str, timeout: int = 35) -> str:
     body = json.dumps(
         {
             "model": model,
@@ -54,7 +54,7 @@ def complete(prompt: str) -> str:
             continue
         for candidate in (model, FALLBACK_MODEL):
             try:
-                return _chat(base, candidate, prompt)
+                return _chat(base, candidate, prompt, timeout=75)
             except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
                 errors.append(f"{base} {candidate}: {exc}")
     raise RuntimeError("local model unreachable: " + "; ".join(errors[-4:]))

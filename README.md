@@ -8,31 +8,55 @@ Screenpipe’s capture is useful and its cloud ask hits a credit cap. Dayglass i
 
 This is original code. It is not a Screenpipe fork.
 
-## What v0 does
+## Features
 
-- `capture` — one screenshot, OCR, store
-- `watch` — keep capturing
-- `search` — full-text over what was on screen
-- `ask` — answer from recent screen text via LM Studio
-- `recap` — today’s screen text, summarized locally
+- **Desktop Client (`dayglass desktop`)** — Standalone dark-mode macOS application window with Chat, Meetings, Timeline, and Automations (replacing Screenpipe).
+- **Menu Bar App (`dayglass-menubar`)** — Native macOS AppKit `NSStatusItem` in your top menu bar with hotkeys (`⌘⇧C` to capture, `⌘⇧D` to open desktop).
+- **Screen Memory (`capture` / `watch`)** — On-device OCR into SQLite FTS5 database (`~/.dayglass/dayglass.sqlite`).
+- **Meetings & Audio (`meeting`)** — Microphone capture and transcription into SQLite with on-demand local summaries.
+- **Local Automations (`automate`)** — Safe, deterministic local models replacing Screenpipe's credit-burning pipes (`standup-prep`, `day-recap`, `missed-todos`, `blockers`, `time-breakdown`, `automate-my-work`).
+- **100% Free & Local** — Zero cloud limits. Zero monthly subscriptions ($0.00/mo). Zero corporate transcript leakage.
 
 ## Acceptance
 
 - [x] Capture writes OCR into `~/.dayglass/dayglass.sqlite` with no network call
 - [x] `ask` posts only to `127.0.0.1` (LM Studio), never to a hosted chat API
-- [ ] Menu-bar app (later)
-- [ ] Mic / meeting audio (later)
+- [x] Desktop client UI (`python3 -m dayglass desktop`)
+- [x] Menu-bar companion (`~/.local/bin/dayglass-menubar`)
+- [x] Mic / meeting audio & transcription (`python3 -m dayglass meeting`)
+- [x] Local deterministic automations (`python3 -m dayglass automate`)
 
 ## Run
 
 ```bash
+# 1. Launch the Desktop Client (standalone window)
+python3 -m dayglass desktop
+
+# 2. Start the native macOS Menu Bar Companion
+dayglass-menubar &
+
+# 3. CLI Screen Capture & Search
 python3 -m dayglass capture
 python3 -m dayglass watch --interval 45
 python3 -m dayglass search "stock"
+
+# 4. Ask Local LM Studio
 python3 -m dayglass ask "what was I looking at this morning?"
-python3 -m dayglass recap
+
+# 5. Run Local Automations (Zero token caps)
+python3 -m dayglass automate standup-prep
+python3 -m dayglass automate day-recap
+python3 -m dayglass automate missed-todos
+python3 -m dayglass automate blockers
+
+# 6. Record & Summarize a Meeting
+python3 -m dayglass meeting "PSN StockService Sync" --duration 60
+
+# 7. Check Database & Local Status
+python3 -m dayglass stats
 ```
 
-Needs `tesseract` and LM Studio on `http://127.0.0.1:1235/v1` (falls back to `:1234`). Default model: `qwen3.8-27b-mlx@4bit`.
+Needs `tesseract` and LM Studio on `http://127.0.0.1:1234/v1` (falls back to `:1235`). Default model: `qwen3.8-27b-mlx@4bit` (fallback: `qwen3-4b-instruct-2507-mlx`).
 
-Screen text can include work content. The database stays in `~/.dayglass/` and is gitignored. Do not commit it.
+Screen text and transcripts stay in `~/.dayglass/` and are gitignored. Never committed or sent to cloud.
+
