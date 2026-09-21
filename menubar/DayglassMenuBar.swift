@@ -104,7 +104,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func openDesktop() {
-        runShell(cmd: "python3 -m dayglass desktop &") { _ in }
+        runShell(cmd: "open -a Dayglass") { _ in }
     }
 
     @objc func runAutomationAction(_ sender: NSMenuItem) {

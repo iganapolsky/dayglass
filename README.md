@@ -10,7 +10,7 @@ This is original code. It is not a Screenpipe fork.
 
 ## Features
 
-- **Desktop Client (`dayglass desktop`)** — Standalone dark-mode macOS application window with Chat, Meetings, Timeline, and Automations (replacing Screenpipe).
+- **Dayglass.app** — Mac app (Dock and menu bar say Dayglass). Chat, Meetings, Timeline, and Automations.
 - **Menu Bar App (`dayglass-menubar`)** — Native macOS AppKit `NSStatusItem` in your top menu bar with hotkeys (`⌘⇧C` to capture, `⌘⇧D` to open desktop).
 - **Screen Memory (`capture` / `watch`)** — On-device OCR into SQLite FTS5 database (`~/.dayglass/dayglass.sqlite`).
 - **Meetings & Audio (`meeting`)** — Microphone capture and transcription into SQLite with on-demand local summaries.
@@ -21,7 +21,7 @@ This is original code. It is not a Screenpipe fork.
 
 - [x] Capture writes OCR into `~/.dayglass/dayglass.sqlite` with no network call
 - [x] `ask` posts only to `127.0.0.1` (LM Studio), never to a hosted chat API
-- [x] Desktop client UI (`python3 -m dayglass desktop`)
+- [x] Mac app at `/Applications/Dayglass.app` (menu bar name is Dayglass)
 - [x] Menu-bar companion (`~/.local/bin/dayglass-menubar`)
 - [x] Mic / meeting audio & transcription (`python3 -m dayglass meeting`)
 - [x] Local deterministic automations (`python3 -m dayglass automate`)
@@ -29,8 +29,8 @@ This is original code. It is not a Screenpipe fork.
 ## Run
 
 ```bash
-# 1. Launch the Desktop Client (standalone window)
-python3 -m dayglass desktop
+# 1. Launch the Mac app
+open -a Dayglass
 
 # 2. Start the native macOS Menu Bar Companion
 dayglass-menubar &

@@ -8,8 +8,6 @@ import time
 
 import os
 import subprocess
-import threading
-import webbrowser
 
 from dayglass.ask import complete
 from dayglass.automations import PROMPTS, run_automation
@@ -108,43 +106,15 @@ def _show_stats() -> int:
     return 0
 
 
-def _open_desktop(port: int = 3333) -> None:
-    url = f"http://127.0.0.1:{port}"
-    chrome_app = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-    brave_app = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
-
-    # Try launching as standalone app window if Chrome/Brave is present
-    for app in (chrome_app, brave_app):
-        if os.path.exists(app):
-            try:
-                subprocess.Popen([app, f"--app={url}", "--window-size=1200,820"])
-                return
-            except Exception:
-                pass
-    # Fallback to system default browser
-    webbrowser.open(url)
+NATIVE_APP = "/Applications/Dayglass.app"
 
 
 def _start_desktop(port: int = 3333, daemon: bool = False) -> int:
-    server = serve(port=port)
-    print(f"Dayglass Desktop Server running at http://127.0.0.1:{port}")
-
-    t = threading.Thread(target=server.serve_forever, daemon=True)
-    t.start()
-
-    time.sleep(0.4)
-    _open_desktop(port)
-
-    if daemon:
-        return 0
-
-    print("Press Ctrl+C to stop.")
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\nStopping Dayglass Desktop.")
-        server.shutdown()
+    if not os.path.isdir(NATIVE_APP):
+        print("Dayglass.app is not installed.", file=sys.stderr)
+        return 1
+    subprocess.Popen(["open", "-a", NATIVE_APP])
+    print("Opened Dayglass")
     return 0
 
 
