@@ -154,10 +154,15 @@ class DayglassHandler(BaseHTTPRequestHandler):
                 return
             try:
                 context = recent_text(conn, limit=16)
+                if not context.strip():
+                    self._send_json({"answer": "No screen captures yet. Run: python3 -m dayglass capture"})
+                    return
                 prompt = (
-                    f"Screen & Activity Notes:\n{context[:24000]}\n\n"
-                    f"User Question: {question}\n\n"
-                    f"Answer accurately and directly based on what was observed on screen."
+                    f"SCREEN & ACTIVITY NOTES (OCR from user's screenshots):\n"
+                    f"{context[:24000]}\n\n"
+                    f"USER QUESTION: {question}\n\n"
+                    f"Answer based ONLY on what appears in the screen notes above. "
+                    f"If the notes don't contain the answer, say so."
                 )
                 answer = complete(prompt)
                 self._send_json({"answer": answer})

@@ -23,8 +23,14 @@ def _chat(base: str, model: str, prompt: str, timeout: int = 35) -> str:
                 {
                     "role": "system",
                     "content": (
-                        "You answer from the user's own screen notes. "
-                        "Be direct. If the notes do not say it, say so."
+                        "You are answering questions about what the user was doing on their computer. "
+                        "You ONLY have access to OCR text from screenshots and meeting transcripts. "
+                        "Rules:\n"
+                        "1. Answer ONLY from the provided screen notes below. Never invent or assume.\n"
+                        "2. If the notes don't contain the answer, say: 'I don't see that in your screen history.'\n"
+                        "3. Never describe what DayGlass or Screenpipe does as an answer.\n"
+                        "4. Be specific: mention apps, files, conversations, or tasks visible in the notes.\n"
+                        "5. If notes are empty or irrelevant, say so directly."
                     ),
                 },
                 {"role": "user", "content": prompt},
