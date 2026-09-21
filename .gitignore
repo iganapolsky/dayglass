@@ -5,3 +5,6 @@ __pycache__/
 *.sqlite
 *.png
 frames/
+dayglass.egg-info/
+.pytest_cache/
+/main

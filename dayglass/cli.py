@@ -6,9 +6,26 @@ import argparse
 import sys
 import time
 
+import os
+import subprocess
+import threading
+import webbrowser
+
 from dayglass.ask import complete
+from dayglass.automations import PROMPTS, run_automation
 from dayglass.capture import grab
-from dayglass.store import connect, insert_frame, recent_text, search, today_text
+from dayglass.meetings import record_chunk, summarize_meeting
+from dayglass.server import serve
+from dayglass.store import (
+    connect,
+    get_stats,
+    insert_frame,
+    insert_meeting,
+    list_meetings,
+    recent_text,
+    search,
+    today_text,
+)
 
 
 def _capture_once(keep_image: bool) -> int:
@@ -46,10 +63,96 @@ def _recap() -> int:
     return 0
 
 
+def _run_automate(name: str) -> int:
+    conn = connect()
+    try:
+        _, result = run_automation(name, conn=conn)
+        print(f"=== AUTOMATION: {name} ===\n")
+        print(result)
+        return 0
+    except Exception as exc:
+        print(f"Automation failed: {exc}", file=sys.stderr)
+        return 2
+
+
+def _record_meeting(title: str, duration: int) -> int:
+    print(f"Recording meeting '{title}' for {duration} seconds...")
+    try:
+        transcript, _ = record_chunk(duration_sec=duration)
+        if not transcript.strip():
+            print("No speech detected in audio.")
+            return 2
+        print(f"Transcript captured ({len(transcript)} chars). Summarizing with local LM Studio...")
+        summary, action_items = summarize_meeting(title, transcript)
+        conn = connect()
+        rowid = insert_meeting(conn, title, transcript, summary, action_items)
+        print(f"Meeting stored (id: {rowid}).")
+        print(f"\n--- Summary ---\n{summary}")
+        return 0
+    except Exception as exc:
+        print(f"Meeting capture error: {exc}", file=sys.stderr)
+        return 2
+
+
+def _show_stats() -> int:
+    conn = connect()
+    stats = get_stats(conn)
+    print("=== Dayglass Local Status ===")
+    print(f"Frames stored:      {stats['frames_count']}")
+    print(f"Audio chunks:       {stats['audio_chunks_count']}")
+    print(f"Meetings recorded:  {stats['meetings_count']}")
+    print(f"Automations run:    {stats['automations_count']}")
+    print(f"Latest capture:     {stats['latest_capture']}")
+    print(f"Database size:      {stats['db_size_mb']} MB")
+    print("Cost to date:       $0.00 / month (100% on-device)")
+    return 0
+
+
+def _open_desktop(port: int = 3333) -> None:
+    url = f"http://127.0.0.1:{port}"
+    chrome_app = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    brave_app = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+
+    # Try launching as standalone app window if Chrome/Brave is present
+    for app in (chrome_app, brave_app):
+        if os.path.exists(app):
+            try:
+                subprocess.Popen([app, f"--app={url}", "--window-size=1200,820"])
+                return
+            except Exception:
+                pass
+    # Fallback to system default browser
+    webbrowser.open(url)
+
+
+def _start_desktop(port: int = 3333, daemon: bool = False) -> int:
+    server = serve(port=port)
+    print(f"Dayglass Desktop Server running at http://127.0.0.1:{port}")
+
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+
+    time.sleep(0.4)
+    _open_desktop(port)
+
+    if daemon:
+        return 0
+
+    print("Press Ctrl+C to stop.")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nStopping Dayglass Desktop.")
+        server.shutdown()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="dayglass", description="Local screen memory and ask")
+    parser = argparse.ArgumentParser(prog="dayglass", description="Local screen memory, desktop UI, and ask")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    # Core CLI
     cap = sub.add_parser("capture", help="Screenshot + OCR once")
     cap.add_argument("--keep-image", action="store_true")
 
@@ -65,8 +168,29 @@ def main(argv: list[str] | None = None) -> int:
     ask.add_argument("question")
 
     sub.add_parser("recap", help="Summarize today's screen notes locally")
+    sub.add_parser("stats", help="Display local database and capture statistics")
+
+    # Automations
+    auto = sub.add_parser("automate", help="Run a named local automation")
+    auto.add_argument("name", choices=list(PROMPTS.keys()), help="Automation name")
+
+    # Meetings
+    meet = sub.add_parser("meeting", help="Record and summarize a meeting")
+    meet.add_argument("title", help="Meeting title or subject")
+    meet.add_argument("--duration", type=int, default=30, help="Duration in seconds (default: 30)")
+
+    # Desktop & Server
+    desk = sub.add_parser("desktop", help="Launch Dayglass Desktop client window")
+    desk.add_argument("--port", type=int, default=3333)
+
+    ui = sub.add_parser("ui", help="Alias for desktop")
+    ui.add_argument("--port", type=int, default=3333)
+
+    srv = sub.add_parser("serve", help="Start Dayglass API server")
+    srv.add_argument("--port", type=int, default=3333)
 
     args = parser.parse_args(argv)
+
     if args.cmd == "capture":
         return _capture_once(args.keep_image)
     if args.cmd == "watch":
@@ -89,5 +213,20 @@ def main(argv: list[str] | None = None) -> int:
         return _ask(args.question)
     if args.cmd == "recap":
         return _recap()
+    if args.cmd == "stats":
+        return _show_stats()
+    if args.cmd == "automate":
+        return _run_automate(args.name)
+    if args.cmd == "meeting":
+        return _record_meeting(args.title, args.duration)
+    if args.cmd in ("desktop", "ui"):
+        return _start_desktop(args.port)
+    if args.cmd == "serve":
+        s = serve(port=args.port)
+        print(f"Dayglass server running at http://127.0.0.1:{args.port}")
+        s.serve_forever()
+        return 0
+
     parser.error("unknown command")
     return 2
+
