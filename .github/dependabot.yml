@@ -1,10 +1,16 @@
 version: 2
+# Pull requests are reviewed on the Mac by a local model
+# (secure-yolo/scripts/dayglass-dependabot-review.py), then squash-merged
+# when the test check is green. Do not add CODEOWNERS. Do not approve
+# from GitHub Actions without reading the diff.
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
   - package-ecosystem: pip
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
